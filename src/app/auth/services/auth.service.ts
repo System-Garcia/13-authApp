@@ -17,8 +17,8 @@ export class AuthService {
   private _authStatus = signal<AuthStatus>(AuthStatus.checking);
 
   // Para que nadie modifique el valor del user actual usamos una señal computada
-  public currentUser = computed( () => this._currentUser)
-  public authStatus = computed( () => this._authStatus)
+  public currentUser = computed( () => this._currentUser())
+  public authStatus = computed( () => this._authStatus())
 
   constructor() { }
 
