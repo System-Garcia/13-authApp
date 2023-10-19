@@ -24,7 +24,17 @@ export class AuthService {
   public currentUser = computed(() => this._currentUser());
   public authStatus = computed(() => this._authStatus());
 
-  constructor() {}
+  constructor() {
+    this.checkAuthStatus().subscribe() // Llamamos al funcion en el constructor para que se dispare al inyectar al dependencia
+  }
+
+  private setAuthentication(user: User, token: string): boolean {
+    this._currentUser.set(user);
+    this._authStatus.set(AuthStatus.authenticated);
+    localStorage.setItem('token', token);
+
+    return true;
+  }
 
   login(email: string, password: string): Observable<Boolean> {
     const url = `${this.baseUrl}/auth/login`;
@@ -32,16 +42,7 @@ export class AuthService {
 
     return this.http.post<LoginResponse>(url, body).pipe(
       // Destructuring
-      tap(({ user, token }) => {
-        this._currentUser.set(user);
-        this._authStatus.set(AuthStatus.authenticated);
-        localStorage.setItem('token', token);
-
-        console.log({ user, token });
-      }),
-      map(() => true),
-
-      // TODO: errores
+      map( ({user, token}) => this.setAuthentication(user, token)),
       // Este operador nos permite regresar un error sin importar el tipado
       catchError((err) => throwError(() => err.error.message))
     );
@@ -53,23 +54,29 @@ export class AuthService {
     const url = `${this.baseUrl}/auth/check-token`;
     const token = localStorage.getItem('token');
 
-    if (!token) return of(false); // Si no hay token directamente regresamos false
+    if (!token) {
+      this.logout();
+      return of(false);
+    }; // Si no hay token directamente regresamos false
 
     // Crear headers de la peticion
     const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
 
     return this.http.get<CheckTokenResponse>(url, { headers }).pipe(
-      map(({ user, token }) => {
-        this._currentUser.set(user);
-        this._authStatus.set(AuthStatus.authenticated);
-        localStorage.setItem('token', token);
 
-        return true;
-      }),
+      // Retornar observable con true
+      map(({ user, token }) => this.setAuthentication(user, token)),
       catchError(() => { // En este ya sabemos que no esta autenticado
         this._authStatus.set( AuthStatus.notAuthenticated);
         return of(false);
       })
     );
+  }
+
+  logout() {
+    this._currentUser.set(null);
+    this._authStatus.set(AuthStatus.notAuthenticated);
+
+    localStorage.removeItem('token');
   }
 }

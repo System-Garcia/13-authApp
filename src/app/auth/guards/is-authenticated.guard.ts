@@ -12,6 +12,10 @@ export const isAuthenticatedGuard: CanActivateFn = (route, state) => {
     return true;
   }
 
+  // if( authService.authStatus() === AuthStatus.checking) {
+  //   return false;
+  // }
+
 
   // const url = state.url // Ruta a la que se quiere entrar
   // localStorage.setItem('path', url);
